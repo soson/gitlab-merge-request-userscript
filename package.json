@@ -1,0 +1,37 @@
+{
+  "name": "gitlab-enhancer",
+  "version": "0.0.0",
+  "description": "Gitlab Merge Request Enhancer",
+  "author": "soson",
+  "license": "MIT",
+  "private": true,
+  "husky": {
+    "hooks": {
+      "pre-push": "npm run lint"
+    }
+  },
+  "scripts": {
+    "dev": "rollup -wc rollup.conf.js",
+    "clean": "del dist types",
+    "build": "npm run build:js",
+    "build:js": "rollup -c rollup.conf.js",
+    "prebuild": "npm run ci && npm run clean",
+    "prepublishOnly": "npm run build",
+    "ci": "npm run lint",
+    "lint": "eslint --ext .ts ."
+  },
+  "devDependencies": {
+    "@babel/preset-typescript": "^7.9.0",
+    "@gera2ld/plaid": "~2.0.0",
+    "@gera2ld/plaid-common-react": "~2.0.0",
+    "@gera2ld/plaid-rollup": "~2.0.0",
+    "@typescript-eslint/eslint-plugin": "^2.31.0",
+    "@typescript-eslint/parser": "^2.31.0",
+    "del-cli": "^3.0.0",
+    "husky": "^4.2.5",
+    "typescript": "^3.8.3"
+  },
+  "dependencies": {
+    "@babel/runtime": "^7.9.6"
+  }
+}
