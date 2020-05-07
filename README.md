@@ -1,6 +1,6 @@
 # Gitlab Enhancer
 
-This is a userscript for enhancing [Gitlab](gitlab.com) Merge Requests page with icons of approvers.
+This is a userscript for enhancing [Gitlab](http://gitlab.com) Merge Requests page with icons of approvers.
 
 While there are icons of assigned people by default, no approvers are shown on this page, this userscript fixes it.
 
