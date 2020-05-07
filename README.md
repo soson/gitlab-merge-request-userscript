@@ -8,7 +8,7 @@ While there are icons of assigned people by default, no approvers are shown on t
 
 1. Install [ViolentMonkey](https://violentmonkey.github.io/) extension for [Firefox](https://addons.mozilla.org/en-US/firefox/addon/violentmonkey/) or [Chrome](https://chrome.google.com/webstore/detail/violentmonkey/jinjaccalgkegednnccohejagnlnfdag)
 
-2. Add new [script](http://my-script-url/dist) via extension gui
+2. Add new [script](https://github.com/soson/gitlab-merge-request-userscript/raw/master/dist/index.user.js) via extension gui
 
 ## Development
 

@@ -4,7 +4,7 @@
 // @description This is a userscript.
 // @match       https://gitlab.com/**/merge_requests
 // @grant       none
-// @version     0.0.0
+// @version     0.0.1
 // @author      -
 // @require     https://cdn.jsdelivr.net/combine/npm/@violentmonkey/dom,npm/@violentmonkey/ui
 // ==/UserScript==
