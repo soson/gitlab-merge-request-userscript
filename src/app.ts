@@ -1,22 +1,22 @@
-const API_PREFIX = "https://gitlab.com/api/v4/";
+const API_PREFIX = "https://gitlab.com/api/v4";
 
-function getProjectId(): string {
-  return (document.querySelector("#search_project_id") as HTMLInputElement)
-    .value;
-}
+type Approver = {
+  photo: string;
+  name: string;
+  username: string;
+};
+type Approvals = Approver[];
 
-function getMergeRequestIdFromURL(url: string): string {
-  return url.split("/").pop();
-}
-
-function getMergeRequestIds(): string[] {
-  return Array.from(document.querySelectorAll(".merge-request-title a")).map(
-    (element) => {
-      const url = element.getAttribute("href");
-      const mergeRequestId = getMergeRequestIdFromURL(url);
-      return mergeRequestId;
-    }
-  );
+function convertApprovalsResponseToApprovals(
+  data: ApprovalsResponseJson
+): Approvals {
+  return data.approved_by.map((approver) => {
+    return {
+      photo: approver.user.avatar_url,
+      name: approver.user.name,
+      username: approver.user.username,
+    };
+  });
 }
 
 type ApprovalsResponseJson = {
@@ -33,47 +33,56 @@ type ApprovalsResponseJson = {
 async function getMergeRequestApprovals(
   projectId: string,
   mergeRequestId: string
-): Promise<ApprovalsResponseJson> {
+): Promise<Approvals> {
   const response = await fetch(
     `${API_PREFIX}/projects/${projectId}/merge_requests/${mergeRequestId}/approvals`
   );
-  return response.json();
+  return convertApprovalsResponseToApprovals(await response.json());
 }
 
-type Approver = {
-  photo: string;
-  name: string;
-  username: string;
+type MergeRequestDetail = {
+  isDiscussionResolved: boolean;
 };
-type Approval = Approver[];
-type ApprovalsMap = Map<string, Approval>;
 
-function convertJsonToApproval(data: ApprovalsResponseJson): Approval {
-  return data.approved_by.map((approver) => {
-    return {
-      photo: approver.user.avatar_url,
-      name: approver.user.name,
-      username: approver.user.username,
-    };
-  });
+function convertMergeRequestResponseToMergeRequestDetail(
+  data: MergeRequestResponse
+): MergeRequestDetail {
+  return {
+    isDiscussionResolved: data.blocking_discussions_resolved,
+  };
 }
 
-async function getMergeRequestApprovalsMap(
-  projectId,
-  mergeRequestIds
-): Promise<ApprovalsMap> {
-  const data = await Promise.all(
-    mergeRequestIds.map((mergeRequestId) =>
-      getMergeRequestApprovals(projectId, mergeRequestId)
-    )
+type MergeRequestResponse = {
+  blocking_discussions_resolved: boolean;
+};
+
+async function getMergeRequestDetails(
+  projectId: string,
+  mergeRequestId: string
+): Promise<MergeRequestDetail> {
+  const response = await fetch(
+    `${API_PREFIX}/projects/${projectId}/merge_requests/${mergeRequestId}`
+  );
+  return convertMergeRequestResponseToMergeRequestDetail(await response.json());
+}
+
+type ProjectResponseJson = {
+  id: string;
+};
+
+function getMergeRequestIdFromURL(url: string): string {
+  return url.split("/").pop();
+}
+
+async function getProjectIdFromURL(url: string): Promise<string> {
+  const regex = /.*\/(.*)\/-\/merge_requests.*/;
+  const projectName = url.match(regex);
+  const response = await fetch(
+    `${API_PREFIX}/projects/?membership=true&search=${projectName[1]}`
   );
 
-  return new Map(
-    data.map((d: ApprovalsResponseJson) => [
-      String(d.id),
-      convertJsonToApproval(d),
-    ])
-  );
+  const project: ProjectResponseJson = await response.json();
+  return project[0].id;
 }
 
 function createAvatar(
@@ -81,39 +90,63 @@ function createAvatar(
   name: string,
   userName: string
 ): DocumentFragment {
-  const htmlString = `<a class="author-link has-tooltip" title="" href="/${userName}" data-original-title="Approved by ${name}">
+  const htmlString = `<a class="author-link has-tooltip approval" title="" href="/${userName}" data-original-title="Approved by ${name}">
     <img class="avatar avatar-inline s16 js-lazy-loaded qa-js-lazy-loaded" alt="" src="${avatarURL}?s=32&amp;d=identicon" width="16">
   </a>`;
 
   return document.createRange().createContextualFragment(htmlString);
 }
 
-function updateDOM(data: ApprovalsMap): void {
-  const nodeList = document.querySelectorAll(
-    ".merge-requests-holder > ul > li"
-  );
+function updateApprovers(node: Element, approvals: Approvals): void {
+  /* remove previous approvals avatars (repeated clicking on bookmarklet adds new avatars) */
+  node.querySelectorAll("a.approval").forEach((el) => {
+    el.remove();
+  });
 
-  nodeList.forEach((node) => {
-    const mergeRequestId = node.getAttribute("data-id");
-    const approvals = data.get(mergeRequestId);
-
-    approvals.forEach(({ photo, name, username }) => {
-      const avatar = createAvatar(photo, name, username);
-      node.appendChild(avatar);
-    });
+  approvals.forEach(({ photo, name, username }) => {
+    const avatar = createAvatar(photo, name, username);
+    node.appendChild(avatar);
   });
 }
 
-async function asyncInit(): Promise<void> {
-  const projectId = getProjectId();
-  const mergeRequestIds = getMergeRequestIds();
-  const approvalsMap = await getMergeRequestApprovalsMap(
-    projectId,
-    mergeRequestIds
-  );
-  updateDOM(approvalsMap);
+function updateComments(node: Element, comments: MergeRequestDetail): void {
+  const { isDiscussionResolved } = comments;
+  node
+    .querySelector("li.issuable-comments a.has-tooltip")
+    .setAttribute(
+      "style",
+      `color: ${isDiscussionResolved ? "#1aaa55" : "#db3b21"}`
+    );
+}
+
+function updateDOM(
+  node: Element,
+  approvals: Approvals,
+  detail: MergeRequestDetail
+): void {
+  updateComments(node, detail);
+  updateApprovers(node, approvals);
+}
+
+async function updateMergeRequest(node: Element): Promise<void> {
+  const mergeRequestURL = node
+    .querySelector(".merge-request-title a")
+    .getAttribute("href");
+  const mergeRequestId = getMergeRequestIdFromURL(mergeRequestURL);
+  const projectId = await getProjectIdFromURL(mergeRequestURL);
+  const detail = await getMergeRequestDetails(projectId, mergeRequestId);
+  const approvals = await getMergeRequestApprovals(projectId, mergeRequestId);
+  updateDOM(node, approvals, detail);
+}
+
+async function updateAllMergeRequests(): Promise<void> {
+  const nodeList = document.querySelectorAll(".merge-request");
+
+  nodeList.forEach((node) => {
+    updateMergeRequest(node);
+  });
 }
 
 export function init(): void {
-  (async (): Promise<void> => await asyncInit())();
+  (async (): Promise<void> => await updateAllMergeRequests())();
 }
