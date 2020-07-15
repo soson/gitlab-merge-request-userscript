@@ -1,4 +1,4 @@
-const API_PREFIX = "https://gitlab.com/api/v4";
+const API_PREFIX = `https://${window.location.hostname}/api/v4`;
 
 type Approver = {
   photo: string;
