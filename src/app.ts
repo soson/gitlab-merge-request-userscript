@@ -42,6 +42,7 @@ async function getMergeRequestApprovals(
 
 type MergeRequestDetail = {
   isDiscussionResolved: boolean;
+  hasConflicts: boolean;
 };
 
 function convertMergeRequestResponseToMergeRequestDetail(
@@ -49,11 +50,13 @@ function convertMergeRequestResponseToMergeRequestDetail(
 ): MergeRequestDetail {
   return {
     isDiscussionResolved: data.blocking_discussions_resolved,
+    hasConflicts: data.has_conflicts,
   };
 }
 
 type MergeRequestResponse = {
   blocking_discussions_resolved: boolean;
+  has_conflicts: boolean;
 };
 
 async function getMergeRequestDetails(
@@ -109,8 +112,7 @@ function updateApprovers(node: Element, approvals: Approvals): void {
   });
 }
 
-function updateComments(node: Element, comments: MergeRequestDetail): void {
-  const { isDiscussionResolved } = comments;
+function updateComments(node: Element, isDiscussionResolved: boolean): void {
   node
     .querySelector("li.issuable-comments a.has-tooltip")
     .setAttribute(
@@ -119,12 +121,20 @@ function updateComments(node: Element, comments: MergeRequestDetail): void {
     );
 }
 
+function updateConflict(node: Element): void {
+  node
+    .querySelector("li.issuable-pipeline-broken a.has-tooltip")
+    .setAttribute("style", "color: #db3b21");
+}
+
 function updateDOM(
   node: Element,
   approvals: Approvals,
   detail: MergeRequestDetail
 ): void {
-  updateComments(node, detail);
+  const { hasConflicts, isDiscussionResolved } = detail;
+  hasConflicts && updateConflict(node);
+  updateComments(node, isDiscussionResolved);
   updateApprovers(node, approvals);
 }
 

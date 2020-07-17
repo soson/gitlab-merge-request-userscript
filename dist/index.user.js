@@ -4,7 +4,7 @@
 // @description This is a userscript.
 // @match       https://gitlab.com/**/merge_requests
 // @grant       none
-// @version     0.0.3
+// @version     0.0.4
 // @author      -
 // @require     https://cdn.jsdelivr.net/combine/npm/@violentmonkey/dom,npm/@violentmonkey/ui
 // ==/UserScript==
@@ -31,7 +31,8 @@ async function getMergeRequestApprovals(projectId, mergeRequestId) {
 
 function convertMergeRequestResponseToMergeRequestDetail(data) {
   return {
-    isDiscussionResolved: data.blocking_discussions_resolved
+    isDiscussionResolved: data.blocking_discussions_resolved,
+    hasConflicts: data.has_conflicts
   };
 }
 
@@ -74,15 +75,21 @@ function updateApprovers(node, approvals) {
   });
 }
 
-function updateComments(node, comments) {
-  const {
-    isDiscussionResolved
-  } = comments;
+function updateComments(node, isDiscussionResolved) {
   node.querySelector("li.issuable-comments a.has-tooltip").setAttribute("style", `color: ${isDiscussionResolved ? "#1aaa55" : "#db3b21"}`);
 }
 
+function updateConflict(node) {
+  node.querySelector("li.issuable-pipeline-broken a.has-tooltip").setAttribute("style", "color: #db3b21");
+}
+
 function updateDOM(node, approvals, detail) {
-  updateComments(node, detail);
+  const {
+    hasConflicts,
+    isDiscussionResolved
+  } = detail;
+  hasConflicts && updateConflict(node);
+  updateComments(node, isDiscussionResolved);
   updateApprovers(node, approvals);
 }
 
