@@ -71,7 +71,8 @@ async function getMergeRequestDetails(
 
 type ProjectResponseJson = {
   id: string;
-};
+  name: string;
+}[];
 
 function getMergeRequestIdFromURL(url: string): string {
   return url.split("/").pop();
@@ -84,8 +85,13 @@ async function getProjectIdFromURL(url: string): Promise<string> {
     `${API_PREFIX}/projects/?membership=true&search=${projectName[1]}`
   );
 
-  const project: ProjectResponseJson = await response.json();
-  return project[0].id;
+  const projects: ProjectResponseJson = await response.json();
+
+  // there can be more search results if the names overlapping (searching for project-1 will return project-1, project-11, ...)
+  // we must filter out the one that we are interested in
+  const filteredProjects = projects.filter((p) => p.name === projectName[1]);
+
+  return filteredProjects[0].id;
 }
 
 function createAvatar(

@@ -4,7 +4,7 @@
 // @description This is a userscript.
 // @match       https://gitlab.com/**/merge_requests
 // @grant       none
-// @version     0.0.4
+// @version     0.0.5
 // @author      -
 // @require     https://cdn.jsdelivr.net/combine/npm/@violentmonkey/dom,npm/@violentmonkey/ui
 // ==/UserScript==
@@ -49,8 +49,11 @@ async function getProjectIdFromURL(url) {
   const regex = /.*\/(.*)\/-\/merge_requests.*/;
   const projectName = url.match(regex);
   const response = await fetch(`${API_PREFIX}/projects/?membership=true&search=${projectName[1]}`);
-  const project = await response.json();
-  return project[0].id;
+  const projects = await response.json(); // there can be more search results if the names overlapping (searching for project-1 will return project-1, project-11, ...)
+  // we must filter out the one that we are interested in
+
+  const filteredProjects = projects.filter(p => p.name === projectName[1]);
+  return filteredProjects[0].id;
 }
 
 function createAvatar(avatarURL, name, userName) {
